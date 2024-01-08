@@ -1,64 +1,96 @@
-import React,{useState,useEffect} from 'react';
-import User from './components/user/user';
-import AddUser from './components/user/adduser';
+import React,{useState , useEffect} from 'react';
+import Post from './components/posts/post';
+import AddPost from './components/posts/Addpost';
+import PostDetail from './components/posts/PostDetail';
+import {BrowserRouter as Router , Routes , Route} from 'react-router-dom'
+import EditPost from './components/posts/EditPost';
 
-function App() {
-  let [users,setUsers] = useState([]) 
-  let [toShow,Show] = useState(false)
-
-  useEffect(() => {
-    fetch('https://randomuser.me/api/?results=10')
-      .then(res => res.json())
-      .then(data => {
-        let rawUsers = data.results;
-        let filteredUsers = rawUsers.map(usr => ({
-          uuid: usr.login.uuid,
-          name: `${usr.name.title} ${usr.name.first} ${usr.name.last}`,
-          phone: usr.phone,
-          cell: usr.cell,
-          image: usr.picture.thumbnail
-        }));
-        console.log(filteredUsers);
-        setUsers(filteredUsers);
-      })
-      .catch(err => console.log(err));
-  }, []); // Empty dependency array to run once
-
-  const userRemoveHandler = (uuid) => {
-    alert('are you sure to do this?')
-    let remainUsers=users.filter(urs => urs.uuid != uuid)
-    setUsers(remainUsers);
-  }
+function App(){
+ const END_POINT = 'http://localhost:7000'
+ let [posts,setPost] = useState([]);
+ 
+const addpost = async(data) => {
+  await fetch(`${END_POINT}/posts` , {
+    method:'POST',
+    body:JSON.stringify({
+      title:data.title,
+      des:data.des
+    }),
+    headers:{
+      'content-type':'application/json'
+    }
+  })
   
-  const showHandler = () => {
-    Show(!toShow)
+
+
+   setPost([data,...posts])
+   
+}
+
+useEffect( () => {
+
+  const fetchData = async () => {
+    try {
+      let responeData = await fetch(`${END_POINT}/posts`) //get
+      let posts = await responeData.json();
+      setPost(posts)
+    }catch(error){
+      console.log(error)
+    }
   }
-
-  const userAddHandler = (user) => {
-    let newusers =  [user,...users]
-    setUsers(newusers)
-    Show(!toShow)
-  }
-
-  return (
-      <div className='container my-5'>
-        <h1 className='text-center text-info my-5'>Our Employee</h1>
-        <button className='btn btn-primary btn-sm my-5' onClick={showHandler}>Add user</button>
-        {toShow && <AddUser addUser={userAddHandler}></AddUser>}
-        {
-          users.map(usr => <User key={usr.uuid} data={usr} remove={userRemoveHandler}></User>)
-        }
-      </div>
-        
-     
-
-  )
+ 
+  fetchData()
     
-        
+}, [])
 
-       
+
+
+
+
+const postDeleteHandler = async(id) => {
+
+  await fetch(`${END_POINT}/posts/${id}`, {
+    method:"DELETE"
+  })
+
+
+  
+  setPost(posts.filter(post => post.id != id))
+  
+ 
+}
+
+
+const updatePostHandler = async(updatePost) => {
+
+  await fetch(`${END_POINT}/posts/${updatePost.id}`,{
+    method:'PATCH',
+    body:JSON.stringify(updatePost),
+    headers:{
+      'content-type':'application/json'
+    }
+  })
+  setPost(posts.map(post => post.id === updatePost.id? updatePost : post))
+
+}
+
+
+  return(
+    <div className='container'>
+      <h1 className='text-center text-info my-5'>Posts</h1>
+
+      <Router>
+        <Routes>
+          <Route path='/' element={<Post data={posts} removePost={postDeleteHandler}></Post>}></Route>
+          <Route path='/add' element={<AddPost addpost={addpost} ></AddPost>}></Route>
+          <Route path='/post/edit/:id' element={<EditPost update={updatePostHandler} ></EditPost>}></Route>
+          <Route path='/post/:id' element={<PostDetail></PostDetail>}></Route>
+        </Routes>
+      </Router>
+      
+      
+    </div>
+  )
 }
 
 export default App;
-
-
